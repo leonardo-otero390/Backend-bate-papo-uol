@@ -31,4 +31,19 @@ app.get("/participants", (req, res) => {
     res.send(participants);
 });
 
+app.get("/messages", (req, res) => {
+    const user = req.headers.user;
+    let limit = req.query.limit;
+    if (!limit) limit = messages.length;
+
+    const userVision = (message) => {
+        return (message.from === user || message.to === user || message.to === 'Todos')
+    };
+
+    const filtered = messages.filter(userVision);
+    const limited = filtered.slice(filtered.length - limit);
+
+    res.send(JSON.stringify(limited));
+})
+
 app.listen(4000);
