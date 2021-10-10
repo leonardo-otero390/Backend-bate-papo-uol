@@ -6,8 +6,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const participants = [{ name: 'João', lastStatus: 12313123 }];
-const messages = [{ from: 'João', to: 'Todos', text: 'oi galera', type: 'message', time: '20:04:37' }];
+const SECONDS = 1000;
+let participants = [{ name: 'João', lastStatus: 12313123 }];
+let messages = [{ from: 'João', to: 'Todos', text: 'oi galera', type: 'message', time: '20:04:37' }];
+
+function removeInactives() {
+    const actives = [];
+    participants.forEach(p => {
+        if (Date.now() - p.lastStatus < 10 * SECONDS) actives.push(p); else messages.push(
+            { from: p.name, to: 'Todos', text: 'sai da sala...', type: 'status', time: dayjs().format('HH:mm:ss') }
+        );
+    })
+    participants = actives;
+}
 
 app.post('/participants', (req, res) => {
     const name = req.body.name;
@@ -81,5 +92,7 @@ app.post("/status", (req, res) => {
     }
     res.send();
 })
+
+setInterval(removeInactives, 15 * SECONDS);
 
 app.listen(4000);
