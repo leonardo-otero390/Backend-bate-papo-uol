@@ -31,6 +31,30 @@ app.get("/participants", (req, res) => {
     res.send(participants);
 });
 
+app.post("/messages", (req, res) => {
+
+    const body = req.body;
+    const user = req.headers.user;
+
+    const typeIsValid = body.type === 'message' || body.type === 'private_message';
+    const participantIsOn = participants.find((p) => p.name === user) !== undefined;
+
+    if (body.to === '' || body.text === '' || !typeIsValid || !participantIsOn) {
+        res.status(400);
+    } else {
+        messages.push(
+            {
+                ...body,
+                from: user,
+                time: dayjs().format('HH:mm:ss')
+            }
+        );
+        res.status(200);
+    }
+    res.send();
+
+});
+
 app.get("/messages", (req, res) => {
     const user = req.headers.user;
     let limit = req.query.limit;
