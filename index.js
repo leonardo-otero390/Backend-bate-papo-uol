@@ -70,4 +70,16 @@ app.get("/messages", (req, res) => {
     res.send(JSON.stringify(limited));
 })
 
+app.post("/status", (req, res) => {
+    const user = req.headers.user;
+
+    const participantData = participants.find((p) => p.name === user);
+
+    if (participantData === undefined) res.status(400); else {
+        participantData.lastStatus = Date.now();
+        res.status(200);
+    }
+    res.send();
+})
+
 app.listen(4000);
