@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors'
 import dayjs from 'dayjs'
-
+import { stripHtml } from "string-strip-html";
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -21,7 +21,7 @@ function removeInactives() {
 }
 
 app.post('/participants', (req, res) => {
-    const name = req.body.name;
+    const name = stripHtml(req.body.name).result;
 
     const isUnique = participants.find(participant => participant.name === name) === undefined;
 
@@ -35,7 +35,7 @@ app.post('/participants', (req, res) => {
         );
         res.status(200);
     }
-    res.send(messages);
+    res.send();
 });
 
 app.get("/participants", (req, res) => {
@@ -44,18 +44,19 @@ app.get("/participants", (req, res) => {
 
 app.post("/messages", (req, res) => {
 
-    const body = req.body;
+    const { text, type, to } = req.body;
     const user = req.headers.user;
 
-    const typeIsValid = body.type === 'message' || body.type === 'private_message';
+    const typeIsValid = type === 'message' || type === 'private_message';
     const participantIsOn = participants.find((p) => p.name === user) !== undefined;
-
-    if (body.to === '' || body.text === '' || !typeIsValid || !participantIsOn) {
+    if (to === '' || text === '' || !typeIsValid || !participantIsOn) {
         res.status(400);
     } else {
         messages.push(
             {
-                ...body,
+                type,
+                to,
+                text: stripHtml(text).result.trim(),
                 from: user,
                 time: dayjs().format('HH:mm:ss')
             }
