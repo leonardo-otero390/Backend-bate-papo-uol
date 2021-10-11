@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors'
 import dayjs from 'dayjs'
 import { stripHtml } from "string-strip-html";
+import Joi from 'joi';
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -21,20 +23,27 @@ function removeInactives() {
 }
 
 app.post('/participants', (req, res) => {
+
+    const schema = Joi.object({
+        name: Joi.string()
+            .min(1)
+            .required()
+    })
+    if (schema.validate(req.body).error !== undefined) return res.status(400).send();
+
     const name = stripHtml(req.body.name).result;
-
     const isUnique = participants.find(participant => participant.name === name) === undefined;
+    if (!isUnique) return res.status(409).send();
 
-    if (!isUnique || name === '') res.status(400); else {
-        participants.push({
-            name,
-            lastStatus: Date.now(),
-        });
-        messages.push(
-            { from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: dayjs().format('HH:mm:ss') }
-        );
-        res.status(200);
-    }
+    participants.push({
+        name,
+        lastStatus: Date.now(),
+    });
+    messages.push(
+        { from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: dayjs().format('HH:mm:ss') }
+    );
+    res.status(200);
+
     res.send();
 });
 
@@ -47,11 +56,15 @@ app.post("/messages", (req, res) => {
     const { text, type, to } = req.body;
     const user = req.headers.user;
 
-    const typeIsValid = type === 'message' || type === 'private_message';
+    const schema = Joi.object({
+        type: Joi.string().required().valid('message', 'private_message'),
+        text: Joi.string().required().min(1),
+        to: Joi.string().required().min(1)
+    });
+    if (schema.validate(req.body).error !== undefined) return res.status(400).send();
+
     const participantIsOn = participants.find((p) => p.name === user) !== undefined;
-    if (to === '' || text === '' || !typeIsValid || !participantIsOn) {
-        res.status(400);
-    } else {
+    if (!participantIsOn) return res.status(400).send();
         messages.push(
             {
                 type,
@@ -61,9 +74,7 @@ app.post("/messages", (req, res) => {
                 time: dayjs().format('HH:mm:ss')
             }
         );
-        res.status(200);
-    }
-    res.send();
+        res.status(200).send();
 
 });
 
